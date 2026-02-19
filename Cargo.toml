@@ -1,0 +1,25 @@
+[package]
+name = "speq"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "speq"
+path = "src/main.rs"
+
+[dependencies]
+# TUI
+ratatui = "0.29"
+crossterm = "0.28"
+
+# OpenAPI parsing
+openapiv3 = "2"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+
+# CLI args (needed from Phase 8 onwards, harmless to add now)
+clap = { version = "4", features = ["derive"] }
+
+# Error handling
+anyhow = "1"
