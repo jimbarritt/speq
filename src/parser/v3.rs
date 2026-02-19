@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use anyhow::{Context, Result};
 use openapiv3::{
     IntegerFormat, NumberFormat, OpenAPI, ReferenceOr, Schema, SchemaKind, StringFormat, Type,
@@ -44,18 +46,85 @@ pub fn parse(content: &str) -> Result<LoadedSpec> {
 // ── tree construction ─────────────────────────────────────────────────────────
 
 fn build_tree(api: &OpenAPI) -> Vec<TreeNode> {
-    api.components
-        .as_ref()
-        .map(|c| {
-            let mut schemas: Vec<(&String, &ReferenceOr<Schema>)> =
-                c.schemas.iter().collect();
-            schemas.sort_by_key(|(k, _)| k.as_str());
-            schemas
-                .into_iter()
-                .map(|(name, schema_ref)| schema_ref_to_node(name.clone(), schema_ref, false))
-                .collect()
+    let Some(components) = &api.components else {
+        return Vec::new();
+    };
+
+    // Pass 1: build the tree (Ref nodes are leaves with no children yet).
+    let mut schemas: Vec<(&String, &ReferenceOr<Schema>)> = components.schemas.iter().collect();
+    schemas.sort_by_key(|(k, _)| k.as_str());
+    let mut roots: Vec<TreeNode> = schemas
+        .into_iter()
+        .map(|(name, schema_ref)| schema_ref_to_node(name.clone(), schema_ref, false))
+        .collect();
+
+    // Pass 2: populate children of Ref nodes from their target schemas.
+    // A HashMap<name → &Schema> makes lookups O(1).
+    let schema_map: HashMap<&str, &Schema> = components
+        .schemas
+        .iter()
+        .filter_map(|(k, v)| match v {
+            ReferenceOr::Item(s) => Some((k.as_str(), s)),
+            _ => None,
         })
-        .unwrap_or_default()
+        .collect();
+
+    let mut visited: HashSet<String> = HashSet::new();
+    resolve_refs(&mut roots, &schema_map, &mut visited);
+
+    roots
+}
+
+/// Walk the tree and, for every `Ref` node that has no children yet,
+/// populate its children from the target schema (with cycle detection).
+fn resolve_refs(
+    nodes: &mut Vec<TreeNode>,
+    schemas: &HashMap<&str, &Schema>,
+    visited: &mut HashSet<String>,
+) {
+    for node in nodes.iter_mut() {
+        // Extract the ref target if this is an unresolved Ref node.
+        let target_opt: Option<String> = match &node.info.kind {
+            NodeKind::Ref(t) if node.children.is_empty() && !visited.contains(t.as_str()) => {
+                Some(t.clone())
+            }
+            _ => None,
+        };
+
+        if let Some(target) = target_opt {
+            if let Some(&schema) = schemas.get(target.as_str()) {
+                visited.insert(target.clone());
+                node.children = children_from_schema(schema);
+                // Recurse into the newly-added children before releasing the cycle guard.
+                resolve_refs(&mut node.children, schemas, visited);
+                visited.remove(&target);
+            }
+        } else {
+            // Not a Ref (or already resolved / cycle detected) — just recurse.
+            resolve_refs(&mut node.children, schemas, visited);
+        }
+    }
+}
+
+/// Build the immediate children of a schema without recursing into Ref targets
+/// (that is deferred to the `resolve_refs` pass).
+fn children_from_schema(schema: &Schema) -> Vec<TreeNode> {
+    match &schema.schema_kind {
+        SchemaKind::Type(Type::Object(obj)) => obj
+            .properties
+            .iter()
+            .map(|(name, prop_ref)| {
+                let is_req = obj.required.contains(name);
+                boxed_schema_ref_to_node(name.clone(), prop_ref, is_req)
+            })
+            .collect(),
+        SchemaKind::Type(Type::Array(arr)) => arr
+            .items
+            .as_ref()
+            .map(|items| vec![boxed_schema_ref_to_node("items".to_string(), items, false)])
+            .unwrap_or_default(),
+        _ => Vec::new(),
+    }
 }
 
 /// Convert a `ReferenceOr<Schema>` (used in components.schemas) into a TreeNode.
@@ -508,5 +577,16 @@ mod tests {
         assert_eq!(pets.children.len(), 1);
         let items = &pets.children[0];
         assert!(matches!(&items.info.kind, NodeKind::Ref(t) if t == "Pet"));
+    }
+
+    #[test]
+    fn ref_node_children_expanded_inline() {
+        // Pets.items is →Pet; its children should be Pet's properties (id, name, tag)
+        let spec = parse(PETSTORE).expect("should parse petstore fixture");
+        let pets = spec.schema_nodes.iter().find(|n| n.name == "Pets").unwrap();
+        let items = &pets.children[0]; // items →Pet
+        assert_eq!(items.children.len(), 3, "items →Pet should have Pet's 3 properties");
+        let names: Vec<&str> = items.children.iter().map(|c| c.name.as_str()).collect();
+        assert_eq!(names, vec!["id", "name", "tag"]);
     }
 }
