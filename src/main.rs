@@ -1,6 +1,7 @@
 mod app;
 mod parser;
 mod spec;
+mod tree;
 mod ui;
 
 use std::{env, fs, io};
@@ -63,6 +64,39 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> 
 }
 
 fn handle_key(app: &mut App, code: KeyCode, modifiers: KeyModifiers) {
+    // Handle pending two-key sequences first.
+    if let Some(pending) = app.pending_key.take() {
+        match (pending, code, modifiers) {
+            // gg → goto top
+            ('g', KeyCode::Char('g'), KeyModifiers::NONE) => {
+                app.goto_top();
+                return;
+            }
+            // zo → expand node
+            ('z', KeyCode::Char('o'), KeyModifiers::NONE) => {
+                app.expand_node();
+                return;
+            }
+            // zc → collapse node
+            ('z', KeyCode::Char('c'), KeyModifiers::NONE) => {
+                app.collapse_node();
+                return;
+            }
+            // zR → expand all
+            ('z', KeyCode::Char('R'), KeyModifiers::SHIFT) => {
+                app.expand_all();
+                return;
+            }
+            // zM → collapse all
+            ('z', KeyCode::Char('M'), KeyModifiers::SHIFT) => {
+                app.collapse_all();
+                return;
+            }
+            // Unrecognised second key — fall through to normal handling below.
+            _ => {}
+        }
+    }
+
     match (code, modifiers) {
         // Quit
         (KeyCode::Char('q'), KeyModifiers::NONE) => app.should_quit = true,
@@ -75,11 +109,23 @@ fn handle_key(app: &mut App, code: KeyCode, modifiers: KeyModifiers) {
         (KeyCode::Char('k'), KeyModifiers::NONE) | (KeyCode::Up, KeyModifiers::NONE) => {
             app.move_up()
         }
-        (KeyCode::Char('g'), KeyModifiers::NONE) => app.goto_top(),
+        // First key of 'gg' sequence
+        (KeyCode::Char('g'), KeyModifiers::NONE) => app.pending_key = Some('g'),
         (KeyCode::Char('G'), KeyModifiers::SHIFT) => app.goto_bottom(),
+
+        // Expand / collapse
+        (KeyCode::Char('l'), KeyModifiers::NONE) => app.toggle_expand(),
+        (KeyCode::Char('h'), KeyModifiers::NONE) => app.collapse_node(),
+
+        // Two-key 'z' sequences
+        (KeyCode::Char('z'), KeyModifiers::NONE) => app.pending_key = Some('z'),
 
         // Pane switching
         (KeyCode::Tab, KeyModifiers::NONE) => app.toggle_pane(),
+
+        // Detail pane scrolling
+        (KeyCode::Char('d'), KeyModifiers::CONTROL) => app.scroll_detail_down(),
+        (KeyCode::Char('u'), KeyModifiers::CONTROL) => app.scroll_detail_up(),
 
         _ => {}
     }

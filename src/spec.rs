@@ -1,9 +1,12 @@
+use crate::tree::TreeNode;
+
 /// The loaded, version-detected representation of an OpenAPI spec.
 pub struct LoadedSpec {
     pub title: String,
     pub openapi_version: String,
     pub version: SpecVersion,
-    pub schema_names: Vec<String>,
+    pub schema_names: Vec<String>,    // kept for tests
+    pub schema_nodes: Vec<TreeNode>,  // full schema tree
 }
 
 #[derive(Debug, Clone, PartialEq)]

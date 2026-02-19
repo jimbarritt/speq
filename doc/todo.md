@@ -54,33 +54,33 @@ Phases are ordered by dependency. Each phase should compile and produce a runnab
 
 ---
 
-## Phase 4 — Tree expand/collapse with keyboard nav
+## Phase 4 — Tree expand/collapse with keyboard nav ✅
 
 **Goal:** Each schema can be expanded in the left pane to reveal its properties as a tree.
 
-- [ ] `tree.rs`: define `TreeNode` enum (Object, Array, Primitive, Ref, Combiner)
-- [ ] `tree.rs`: `TreeState` — flat list of visible nodes with expand/collapse state per node
-- [ ] `parser/v3.rs`: convert parsed schema into `TreeNode` hierarchy
-- [ ] `ui/schema_list.rs`: render tree with `▶`/`▼` prefix, indent for depth, type badge, required `*`
-- [ ] Keyboard: `Enter`/`Space` expand/collapse; `gg`/`G` jump to top/bottom
-- [ ] Keyboard: `zo` open node, `zc` collapse node, `zR` expand all, `zM` collapse all
+- [x] `tree.rs`: define `TreeNode` enum (Object, Array, Primitive, Ref, Combiner)
+- [x] `tree.rs`: `TreeState` — flat list of visible nodes with expand/collapse state per node
+- [x] `parser/v3.rs`: convert parsed schema into `TreeNode` hierarchy
+- [x] `ui/schema_list.rs`: render tree with `▶`/`▼` prefix, indent for depth, type badge, required `*`
+- [x] Keyboard: `Enter`/`Space` expand/collapse; `gg`/`G` jump to top/bottom
+- [x] Keyboard: `zo` open node, `zc` collapse node, `zR` expand all, `zM` collapse all
 
-**Done when:** Expanding `Pet` reveals `id (integer*)`, `name (string*)`, `tag (string)`; expanding `Pets` reveals `items →Pet`.
+**Done when:** Expanding `Pet` reveals `id (integer*)`, `name (string*)`, `tag (string)`; expanding `Pets` reveals `items →Pet`. ✅
 
 ---
 
-## Phase 5 — Detail pane rendering
+## Phase 5 — Detail pane rendering ✅
 
 **Goal:** Right pane shows full metadata for the currently selected node.
 
-- [ ] `ui/detail.rs`: render schema/property detail from selected `TreeNode`
-- [ ] Show: name, type, format, description (word-wrapped), required, constraints
-- [ ] Show: enum values, example, default if present
-- [ ] For `$ref` nodes: show target name with `→` indicator
-- [ ] `Ctrl-d`/`Ctrl-u` scroll the detail pane independently
-- [ ] `Tab` switches focus between left and right panes (highlight active pane border)
+- [x] `ui/detail.rs`: render schema/property detail from selected `TreeNode`
+- [x] Show: name, type, format, description (word-wrapped), required, constraints
+- [x] Show: enum values, example, default if present
+- [x] For `$ref` nodes: show target name with `→` indicator
+- [x] `Ctrl-d`/`Ctrl-u` scroll the detail pane independently
+- [x] `Tab` switches focus between left and right panes (highlight active pane border)
 
-**Done when:** Selecting `id` on `Pet` shows `type: integer, format: int64, required: yes` in the right pane.
+**Done when:** Selecting `id` on `Pet` shows `type: integer, format: int64, required: yes` in the right pane. ✅
 
 ---
 
