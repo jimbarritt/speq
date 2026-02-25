@@ -2,6 +2,12 @@
 name = "speq"
 version = "0.1.0"
 edition = "2024"
+description = "speq — OpenAPI specification browser"
+homepage = "https://github.com/jimbarritt/speq"
+repository = "https://github.com/jimbarritt/speq"
+license = "MIT"
+keywords = ["openapi", "tui", "cli", "swagger", "mcp"]
+categories = ["command-line-utilities", "development-tools"]
 
 [[bin]]
 name = "speq"
