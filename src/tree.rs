@@ -1,6 +1,7 @@
 /// Kind of schema node.
 #[derive(Debug, Clone)]
 pub enum NodeKind {
+    #[allow(dead_code)]
     Schema,      // top-level schema root (no specific type)
     Object,
     Array,

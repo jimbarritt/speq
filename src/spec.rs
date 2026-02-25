@@ -1,6 +1,7 @@
 use crate::tree::TreeNode;
 
 /// The loaded, version-detected representation of an OpenAPI spec.
+#[allow(dead_code)]
 pub struct LoadedSpec {
     pub title: String,
     pub openapi_version: String,
@@ -11,6 +12,7 @@ pub struct LoadedSpec {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SpecVersion {
+    #[allow(dead_code)]
     V20,
     V30,
     V31,
