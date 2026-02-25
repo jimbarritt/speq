@@ -6,7 +6,22 @@ See `doc/initial-specification.md` for the full design spec and `doc/todo.md` fo
 
 ---
 
-## Build
+## Install
+
+```bash
+cargo install speq
+```
+
+Then run it against any OpenAPI spec:
+
+```bash
+speq path/to/spec.yaml
+speq path/to/spec.json
+```
+
+---
+
+## Build from source
 
 Requires Rust (stable). Install via [rustup](https://rustup.rs) if needed.
 
