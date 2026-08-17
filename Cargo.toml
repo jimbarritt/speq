@@ -1,6 +1,6 @@
 [package]
 name = "speq"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "speq — OpenAPI specification browser"
 homepage = "https://github.com/jimbarritt/speq"

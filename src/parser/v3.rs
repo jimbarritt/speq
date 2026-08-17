@@ -78,7 +78,7 @@ fn build_tree(api: &OpenAPI) -> Vec<TreeNode> {
 /// Walk the tree and, for every `Ref` node that has no children yet,
 /// populate its children from the target schema (with cycle detection).
 fn resolve_refs(
-    nodes: &mut Vec<TreeNode>,
+    nodes: &mut [TreeNode],
     schemas: &HashMap<&str, &Schema>,
     visited: &mut HashSet<String>,
 ) {

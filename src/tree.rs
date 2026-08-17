@@ -161,7 +161,7 @@ fn flatten_node<'a>(node: &'a TreeNode, depth: usize, out: &mut Vec<FlatNode<'a>
 }
 
 /// Walk visible nodes counting as we go; toggle the node whose flat index == target.
-fn toggle_at(nodes: &mut Vec<TreeNode>, target: usize, counter: &mut usize) -> bool {
+fn toggle_at(nodes: &mut [TreeNode], target: usize, counter: &mut usize) -> bool {
     for node in nodes.iter_mut() {
         if *counter == target {
             if node.is_expandable() {
@@ -178,7 +178,7 @@ fn toggle_at(nodes: &mut Vec<TreeNode>, target: usize, counter: &mut usize) -> b
 }
 
 fn set_expanded_at(
-    nodes: &mut Vec<TreeNode>,
+    nodes: &mut [TreeNode],
     target: usize,
     counter: &mut usize,
     expanded: bool,
@@ -198,7 +198,7 @@ fn set_expanded_at(
     false
 }
 
-fn set_expanded_all(nodes: &mut Vec<TreeNode>, expanded: bool) {
+fn set_expanded_all(nodes: &mut [TreeNode], expanded: bool) {
     for node in nodes.iter_mut() {
         if node.is_expandable() {
             node.expanded = expanded;

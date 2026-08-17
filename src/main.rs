@@ -4,9 +4,10 @@ mod spec;
 mod tree;
 mod ui;
 
-use std::{env, fs, io};
+use std::{fs, io, path::PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
+use clap::Parser;
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
     execute,
@@ -16,17 +17,46 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 
 use app::App;
 
+const DEV_FIXTURE: &str = "fixtures/petstore.yaml";
+
+#[derive(Parser)]
+#[command(
+    name = "speq",
+    version,
+    about = "OpenAPI specification browser",
+    long_about = "speq — a keyboard-driven, read-only browser for OpenAPI and Swagger specifications."
+)]
+struct Cli {
+    #[arg(
+        value_name = "SPEC",
+        help = "Path to an OpenAPI or Swagger specification file (YAML or JSON)"
+    )]
+    spec: Option<PathBuf>,
+}
+
 fn main() -> Result<()> {
-    // Determine the spec path: first CLI arg, or the built-in fixture for dev.
-    let spec_path = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "fixtures/petstore.yaml".to_string());
+    let cli = Cli::parse();
+
+    let spec_path = match cli.spec {
+        Some(path) => path,
+        None => {
+            let fixture = PathBuf::from(DEV_FIXTURE);
+            if !fixture.is_file() {
+                bail!(
+                    "no spec file given\n\nUsage: speq <SPEC>\n\nFor more information, try '--help'."
+                );
+            }
+            fixture
+        }
+    };
+
+    let display = spec_path.display();
 
     let content = fs::read_to_string(&spec_path)
-        .with_context(|| format!("cannot read spec file: {spec_path}"))?;
+        .with_context(|| format!("cannot read spec file: {display}"))?;
 
     let spec = parser::parse_spec(&content)
-        .with_context(|| format!("failed to parse spec: {spec_path}"))?;
+        .with_context(|| format!("failed to parse spec: {display}"))?;
 
     // Set up the terminal
     enable_raw_mode()?;
@@ -51,10 +81,10 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> 
     loop {
         terminal.draw(|frame| ui::draw(frame, app))?;
 
-        if event::poll(std::time::Duration::from_millis(16))? {
-            if let Event::Key(key) = event::read()? {
-                handle_key(app, key.code, key.modifiers);
-            }
+        if event::poll(std::time::Duration::from_millis(16))?
+            && let Event::Key(key) = event::read()?
+        {
+            handle_key(app, key.code, key.modifiers);
         }
 
         if app.should_quit {
