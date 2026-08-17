@@ -65,9 +65,47 @@ set-version version:
 login:
     cargo login
 
-# Dry-run a publish without uploading anything
-publish-dry:
+# Publish the current version as-is; pass --dry-run to package without uploading
+publish *flags="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    version=$(just version)
+    dry=""
+    for flag in {{flags}}; do
+        case "$flag" in
+            --dry-run) dry=1 ;;
+            *) echo "✗ unknown flag: $flag (expected --dry-run)" >&2; exit 1 ;;
+        esac
+    done
+
+    if [ -n "$dry" ]; then
+        cargo publish --dry-run --allow-dirty
+        echo "✓ dry run passed for {{crate}} v$version — nothing uploaded"
+        exit 0
+    fi
+
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "⚠ working tree is dirty — publishing code that is not committed"
+    fi
+
+    if ! git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+        echo "⚠ no v$version tag — this upload will not be reconstructable from git"
+    fi
+
+    just verify
     cargo publish --dry-run --allow-dirty
+
+    read -r -p "Publish {{crate}} v$version to crates.io? This cannot be undone. [y/N] " reply
+    if [ "$reply" != "y" ] && [ "$reply" != "Y" ]; then
+        echo "✗ aborted"
+        exit 1
+    fi
+
+    cargo publish
+
+    echo "✓ published {{crate}} v$version"
+    echo "  https://crates.io/crates/{{crate}}/$version"
 
 # Bump, verify, tag, push and publish to crates.io
 release level="patch":
@@ -98,7 +136,7 @@ release level="patch":
     new=$(just version)
     echo "▶ releasing {{crate}} $old → $new"
 
-    cargo publish --dry-run --allow-dirty
+    just publish --dry-run
 
     read -r -p "Publish {{crate}} v$new to crates.io? This cannot be undone. [y/N] " reply
     if [ "$reply" != "y" ] && [ "$reply" != "Y" ]; then
